@@ -22,6 +22,7 @@ if __name__ == "__main__":
     os.chdir('artifactory/db')
 
     os.system(f'psql {DB_URI} -f install_db.sql')
+    rmdir('artifactory')
 
 
     
