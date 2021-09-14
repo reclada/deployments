@@ -42,7 +42,7 @@ if __name__ == "__main__":
     os.system(f'psql -f install_db.sql {DB_URI} ')
     rmdir('artifactory')
 
-    l_name = os.environ.get('l_name')
+    LAMBDA_NAME = os.environ.get('l_name')
 
     cmd = '''SELECT reclada_object.create('{"class": "Lambda","attributes": {"name": "#@#name#@#"}}'::jsonb);'''
     cmd = cmd.replace('#@#name#@#', l_name)
