@@ -53,15 +53,4 @@ if __name__ == "__main__":
         cmd = f"psql -f tmp.sql {DB_URI}"
         os.system(cmd)
         os.remove('tmp.sql')
-
-    crp = os.environ.get('CUSTOM_REPO_PATH')+'\\db\\'
-    if crp is not None:
-        for s in os.listdir(path=crp):
-            ex = s.split('.')
-            if len(ex)>0:
-                ex = ex[-1]
-                if ex == 'sql':
-                    cmd = f"psql -f {crp}{s} {DB_URI}"
-                    os.system(cmd)
-
     
