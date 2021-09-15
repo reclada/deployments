@@ -7,4 +7,4 @@ if [[ ! -z $CUSTOM_REPO_PATH ]]; then
   pushd $CUSTOM_REPO_PATH/db
   ./install.sh
   popd
-end if
+fi
