@@ -19,18 +19,16 @@ def create_db(DB_URI):
     res = os.popen(f'psql -c "select 1 as a;" {constr}').read()
     if res != '':
         raise Exception('Database already exist')
-
-    def execute(cmd:str):
-        os.system(f'psql -c "{cmd}" {constr}')
-    
+  
     db_name = DB_URI.split('/')[-1]
     constr = constr.replace(db_name,'postgres')
-    
-    execute(f'''CREATE DATABASE {db_name};''')
+    cmd = f'''CREATE DATABASE {db_name};'''
+    os.system(f'psql -c "{cmd}" {constr}')
 
 '''
     DB_URI
     LAMBDA_NAME
+    CUSTOM_REPO_PATH
 '''
 
 if __name__ == "__main__":
@@ -47,13 +45,23 @@ if __name__ == "__main__":
     rmdir('artifactory')
 
     l_name = os.environ.get('LAMBDA_NAME')
+    if l_name is not None:
+        cmd = '''SELECT reclada_object.create('{\"class\": \"Lambda\",\"attributes\": {\"name\": \"#@#name#@#\"}}'::jsonb);'''
+        cmd = cmd.replace('#@#name#@#', l_name)
+        with open('tmp.sql','w') as f:
+            f.write(cmd)
+        cmd = f"psql -f tmp.sql {DB_URI}"
+        os.system(cmd)
+        os.remove('tmp.sql')
 
-    cmd = '''SELECT reclada_object.create('{\"class\": \"Lambda\",\"attributes\": {\"name\": \"#@#name#@#\"}}'::jsonb);'''
-    cmd = cmd.replace('#@#name#@#', l_name)
-    with open('tmp.sql','w') as f:
-        f.write(cmd)
-    cmd = f"psql -f tmp.sql {DB_URI}"
-    os.system(cmd)
-    os.remove('tmp.sql')
+    crp = os.environ.get('CUSTOM_REPO_PATH')+'\\db\\'
+    if crp is not None:
+        for s in os.listdir(path=crp):
+            ex = s.split('.')
+            if len(ex)>0:
+                ex = ex[-1]
+                if ex == 'sql':
+                    cmd = f"psql -f {crp}{s} {DB_URI}"
+                    os.system(cmd)
 
     
