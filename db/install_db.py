@@ -28,6 +28,10 @@ def create_db(DB_URI):
     
     execute(f'''CREATE DATABASE {db_name};''')
 
+'''
+    DB_URI
+    LAMBDA_NAME
+'''
 
 if __name__ == "__main__":
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -44,9 +48,12 @@ if __name__ == "__main__":
 
     l_name = os.environ.get('LAMBDA_NAME')
 
-    cmd = '''SELECT reclada_object.create('{"class": "Lambda","attributes": {"name": "#@#name#@#"}}'::jsonb);'''
+    cmd = '''SELECT reclada_object.create('{\"class\": \"Lambda\",\"attributes\": {\"name\": \"#@#name#@#\"}}'::jsonb);'''
     cmd = cmd.replace('#@#name#@#', l_name)
-
-    os.system(f'psql -c "{cmd}" {DB_URI}')
+    with open('tmp.sql','w') as f:
+        f.write(cmd)
+    cmd = f"psql -f tmp.sql {DB_URI}"
+    os.system(cmd)
+    os.remove('tmp.sql')
 
     
