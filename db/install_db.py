@@ -13,22 +13,32 @@ def rmdir(top:str):
                 os.rmdir(os.path.join(root, name))
         os.rmdir(top)
 
-def create_db(DB_URI):
-    constr = DB_URI
 
-    res = os.popen(f'psql -c "select 1 as a;" {constr}').read()
-    if res != '':
-        raise Exception('Database already exist')
-  
-    db_name = DB_URI.split('/')[-1]
-    constr = constr.replace(db_name,'postgres')
-    cmd = f'''CREATE DATABASE {db_name};'''
-    os.system(f'psql -c "{cmd}" {constr}')
+
+def create_db(DB_URI):
+    def exec_scalar(q:str):
+        return os.popen(f'psql -P pager=off -c "{q}" {DB_URI}').readlines()[2].strip()
+
+    res = exec_scalar("select version()")
+    if not res.startswith("PostgreSQL"):
+        raise Exception(f'Database {res} not supported')
+    else:
+        v = res.split()[1]
+        v = list(map(int,v.split('.')))
+        if (v[0] < 13) or (v[0] == 13 and v[1]<3):
+            raise Exception(f'PostgreSQL must be 13.3 or upper version, current version: {res}')
+
+    res = exec_scalar("select count(*) from pg_catalog.pg_namespace where nspname = 'reclada'")
+    if res != '0':
+        res = exec_scalar("SELECT max(ver) FROM dev.ver")
+        raise Exception(f'Schema reclada already exist, version:{res}')
+         
 
 '''
     DB_URI
     LAMBDA_NAME
     CUSTOM_REPO_PATH
+    ENVIRONMENT_NAME
 '''
 
 if __name__ == "__main__":
@@ -45,12 +55,23 @@ if __name__ == "__main__":
     rmdir('artifactory')
 
     l_name = os.environ.get('LAMBDA_NAME')
-    if l_name is not None:
-        cmd = '''SELECT reclada_object.create('{\"class\": \"Lambda\",\"attributes\": {\"name\": \"#@#name#@#\"}}'::jsonb);'''
-        cmd = cmd.replace('#@#name#@#', l_name)
+    e_name = os.environ.get('ENVIRONMENT_NAME')
+    if l_name is not None and e_name is not None:
+        cmd = '''SELECT reclada_object.create('{\"class\": \"Context\",\"attributes\": {\"Lambda\": \"#@#lname#@#\",\"Environment\": \"#@#ename#@#\"}}'::jsonb);'''
+        cmd = cmd.replace('#@#lname#@#', l_name)
+        cmd = cmd.replace('#@#ename#@#', e_name)
         with open('tmp.sql','w') as f:
             f.write(cmd)
         cmd = f"psql -f tmp.sql {DB_URI}"
         os.system(cmd)
         os.remove('tmp.sql')
+    
+    print('instaling from CUSTOM_REPO_PATH/db')
+    crp = os.environ.get('CUSTOM_REPO_PATH')+'\\db\\'
+    os.chdir(crp)
+    if crp is not None:
+        os.system("chmod u+x install.sh")
+        os.system("./install.sh")
+        
+        
     
