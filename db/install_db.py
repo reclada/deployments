@@ -47,6 +47,20 @@ if __name__ == "__main__":
     parsed = urllib.parse.urlparse(DB_URI)
     DB_URI = DB_URI.replace(parsed.password, urllib.parse.quote(parsed.password))
     create_db(DB_URI)
+    
+    # installl validate_json_schema
+    rmdir('postgres-json-schema')
+    os.system(f'git clone https://github.com/gavinwahl/postgres-json-schema.git')
+    os.chdir('postgres-json-schema')
+    with open('postgres-json-schema--0.1.1.sql') as s, open('patched.sql','w') as d:
+        d.write(s.read().replace('@extschema@','public'))
+
+    cmd = f"psql -f patched.sql {DB_URI}"
+    os.system(cmd)
+
+    os.chdir('..')
+    rmdir('postgres-json-schema')
+
     rmdir('artifactory')
     os.system(f'git clone https://github.com/reclada/artifactory.git')
     os.chdir('artifactory/db')
