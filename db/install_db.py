@@ -38,6 +38,7 @@ def create_db(DB_URI):
     DB_URI
     LAMBDA_NAME
     CUSTOM_REPO_PATH
+    ENVIRONMENT_NAME
 '''
 
 if __name__ == "__main__":
@@ -54,9 +55,11 @@ if __name__ == "__main__":
     rmdir('artifactory')
 
     l_name = os.environ.get('LAMBDA_NAME')
-    if l_name is not None:
-        cmd = '''SELECT reclada_object.create('{\"class\": \"Lambda\",\"attributes\": {\"name\": \"#@#name#@#\"}}'::jsonb);'''
-        cmd = cmd.replace('#@#name#@#', l_name)
+    e_name = os.environ.get('ENVIRONMENT_NAME')
+    if l_name is not None and e_name is not None:
+        cmd = '''SELECT reclada_object.create('{\"class\": \"Context\",\"attributes\": {\"Lambda\": \"#@#lname#@#\",\"Environment\": \"#@#ename#@#\"}}'::jsonb);'''
+        cmd = cmd.replace('#@#lname#@#', l_name)
+        cmd = cmd.replace('#@#ename#@#', e_name)
         with open('tmp.sql','w') as f:
             f.write(cmd)
         cmd = f"psql -f tmp.sql {DB_URI}"
