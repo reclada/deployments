@@ -1,6 +1,7 @@
 import urllib.parse
 import os
 import stat
+import sys
 
 def rmdir(top:str):
     if os.path.exists(top) and os.path.isdir(top):
@@ -15,10 +16,21 @@ def rmdir(top:str):
 
 
 
-def create_db(DB_URI):
+def create_db(DB_URI, rms):
     def exec_scalar(q:str):
         return os.popen(f'psql -t -P pager=off -c "{q}" {DB_URI}').read().strip()
 
+    DB_name = DB_URI.split('/')[-1]
+    DB_URI_postgres = DB_URI.replace(DB_URI.split('/')[-1],'')+'postgres'
+    found = '--void--'
+    for db_list_name in os.popen('psql -lqt ' + DB_URI.replace(DB_URI.split('/')[-1],'')+'postgres'):
+        if db_list_name.split('|')[0].strip() == DB_name:
+            found = DB_name
+    if found != DB_name:
+        print (f'Can\'t found {DB_name}')
+        os.system(f'psql -c "CREATE DATABASE {DB_name}" {DB_URI_postgres}')
+        print(f'Database {DB_name} created')
+        
     res = exec_scalar("select version()")
     if not res.startswith("PostgreSQL"):
         raise Exception(f'Database {res} not supported')
@@ -27,11 +39,15 @@ def create_db(DB_URI):
         v = list(map(int,v.split('.')))
         if (v[0] < 13) or (v[0] == 13 and v[1]<3):
             raise Exception(f'PostgreSQL must be 13.3 or upper version, current version: {res}')
-
-    res = exec_scalar("select count(*) from pg_catalog.pg_namespace where nspname = 'reclada'")
-    if res != '0':
-        res = exec_scalar("SELECT max(ver) FROM dev.ver")
-        raise Exception(f'Schema reclada already exist, version:{res}')
+    
+    if rms:
+        cmd = f"psql -f drop_schema.sql {DB_URI}"
+        os.system(cmd)
+    else:
+        res = exec_scalar("select count(*) from pg_catalog.pg_namespace where nspname = 'reclada'")
+        if res != '0':
+            res = exec_scalar("SELECT max(ver) FROM dev.ver")
+            raise Exception(f'Schema reclada already exist, version:{res}')
          
 
 '''
@@ -42,11 +58,18 @@ def create_db(DB_URI):
 '''
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        if sys.argv[1] == 'rm_schema':
+            rms = True
+        else:
+            rms = False
+    else:
+        rms = False
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     DB_URI = os.environ.get('DB_URI')
     parsed = urllib.parse.urlparse(DB_URI)
     DB_URI = DB_URI.replace(parsed.password, urllib.parse.quote(parsed.password))
-    create_db(DB_URI)
+    create_db(DB_URI, rms)
     
     # installl validate_json_schema
     rmdir('postgres-json-schema')
