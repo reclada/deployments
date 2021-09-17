@@ -63,7 +63,7 @@ if __name__ == "__main__":
 
     rmdir('artifactory')
     os.system(f'git clone https://github.com/reclada/artifactory.git')
-    os.chdir('artifactory/db')
+    os.chdir(os.path.join('artifactory','db'))
 
     os.system(f'psql -f install_db.sql {DB_URI} ')
     rmdir('artifactory')
@@ -81,7 +81,7 @@ if __name__ == "__main__":
         os.remove('tmp.sql')
     
     print('instaling from CUSTOM_REPO_PATH/db')
-    crp = os.environ.get('CUSTOM_REPO_PATH')+'\\db\\'
+    crp = os.path.join(os.environ.get('CUSTOM_REPO_PATH'),'db')
     os.chdir(crp)
     if crp is not None:
         os.system("chmod u+x install.sh")
