@@ -17,7 +17,7 @@ def rmdir(top:str):
 
 def create_db(DB_URI):
     def exec_scalar(q:str):
-        return os.popen(f'psql -P pager=off -c "{q}" {DB_URI}').readlines()[2].strip()
+        return os.popen(f'psql -t -P pager=off -c "{q}" {DB_URI}').read().strip()
 
     res = exec_scalar("select version()")
     if not res.startswith("PostgreSQL"):
