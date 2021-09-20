@@ -21,9 +21,9 @@ def create_db(DB_URI, rms):
         return os.popen(f'psql -t -P pager=off -c "{q}" {DB_URI}').read().strip()
 
     DB_name = DB_URI.split('/')[-1]
-    DB_URI_postgres = DB_URI.replace(DB_URI.split('/')[-1],'')+'postgres'
+    DB_URI_postgres = DB_URI.replace(DB_name,'')+'postgres'
     found = '--void--'
-    for db_list_name in os.popen('psql -lqt ' + DB_URI.replace(DB_URI.split('/')[-1],'')+'postgres'):
+    for db_list_name in os.popen(f'psql -lqt {DB_URI_postgres}'):
         if db_list_name.split('|')[0].strip() == DB_name:
             found = DB_name
     if found != DB_name:
@@ -58,13 +58,12 @@ def create_db(DB_URI, rms):
 '''
 
 if __name__ == "__main__":
+
+    rms = False
     if len(sys.argv) > 1:
         if sys.argv[1] == 'rm_schema':
             rms = True
-        else:
-            rms = False
-    else:
-        rms = False
+
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     DB_URI = os.environ.get('DB_URI')
     parsed = urllib.parse.urlparse(DB_URI)
