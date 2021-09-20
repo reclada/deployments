@@ -3,6 +3,8 @@ import os
 import stat
 import sys
 
+reclada_user_name = 'reclada'
+
 def rmdir(top:str):
     if os.path.exists(top) and os.path.isdir(top):
         for root, dirs, files in os.walk(top, topdown=False):
@@ -83,15 +85,30 @@ if __name__ == "__main__":
     os.chdir('..')
     rmdir('postgres-json-schema')
 
-    rmdir('artifactory')
-    os.system(f'git clone https://github.com/reclada/artifactory.git')
-    os.chdir(os.path.join('artifactory','db'))
+    pg_user = parsed.username
+    if pg_user != reclada_user_name:
+        if os.popen(f'psql -t -P pager=off -c "SELECT rolname FROM pg_roles WHERE rolname=\'{reclada_user_name}\'" {DB_URI}').read().strip() != reclada_user_name:
+            os.system(f'psql -c "CREATE ROLE {reclada_user_name} NOINHERIT" {DB_URI}')
+        if os.popen(f'psql -t -P pager=off -c "SELECT CASE WHEN pg_has_role(\'{pg_user}\',\'{reclada_user_name}\',\'member\') THEN 1 ELSE 0 END" {DB_URI}').read().strip() == '0':
+            os.system(f'psql -c "GRANT {reclada_user_name} TO {pg_user}" {DB_URI}')
 
-    os.system(f'psql -f install_db.sql {DB_URI} ')
-    rmdir('artifactory')
+    e_name = os.environ.get('ENVIRONMENT_NAME')
+    if e_name == 'K8S':
+        rmdir('artifactory')
+        os.system(f'git clone https://github.com/reclada/artifactory.git')
+        os.chdir(os.path.join('artifactory','db'))
+
+        os.system(f'psql -f install_db.sql {DB_URI} ')
+        os.chdir('..')
+        os.chdir('..')
+        rmdir('artifactory')
+    elif e_name == 'DOMINO':
+        os.chdir('..')
+        os.chdir('..')
+        os.chdir(os.path.join('artifactory','db'))
+        os.system(f'psql -f install_db.sql {DB_URI} ')
 
     l_name = os.environ.get('LAMBDA_NAME')
-    e_name = os.environ.get('ENVIRONMENT_NAME')
     if l_name is not None and e_name is not None:
         cmd = '''SELECT reclada_object.create('{\"class\": \"Context\",\"attributes\": {\"Lambda\": \"#@#lname#@#\",\"Environment\": \"#@#ename#@#\"}}'::jsonb);'''
         cmd = cmd.replace('#@#lname#@#', l_name)
