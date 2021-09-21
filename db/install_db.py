@@ -93,20 +93,24 @@ if __name__ == "__main__":
             os.system(f'psql -c "GRANT {reclada_user_name} TO {pg_user}" {DB_URI}')
 
     e_name = os.environ.get('ENVIRONMENT_NAME')
-    if e_name == 'K8S':
+    DOMINO = e_name == 'DOMINO'
+    
+    if DOMINO:
+        os.chdir('..')
+        os.chdir('..')
+    else:
         rmdir('artifactory')
         os.system(f'git clone https://github.com/reclada/artifactory.git')
-        os.chdir(os.path.join('artifactory','db'))
+        
+    os.chdir(os.path.join('artifactory','db'))
+    os.system(f'psql -f install_db.sql {DB_URI} ')
+    os.chdir('..')
+    os.chdir('..')
 
-        os.system(f'psql -f install_db.sql {DB_URI} ')
-        os.chdir('..')
-        os.chdir('..')
+    if DOMINO:
+        os.chdir('deployments')
+    else:
         rmdir('artifactory')
-    elif e_name == 'DOMINO':
-        os.chdir('..')
-        os.chdir('..')
-        os.chdir(os.path.join('artifactory','db'))
-        os.system(f'psql -f install_db.sql {DB_URI} ')
 
     l_name = os.environ.get('LAMBDA_NAME')
     if l_name is not None and e_name is not None:
