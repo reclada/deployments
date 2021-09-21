@@ -1,3 +1,4 @@
+from genericpath import isdir
 import urllib.parse
 import os
 import stat
@@ -94,7 +95,9 @@ if __name__ == "__main__":
 
     e_name = os.environ.get('ENVIRONMENT_NAME')
     DOMINO = e_name == 'DOMINO'
-    
+    if not (os.path.exists(os.path.join('..','..','artifactory')) and os.path.isdir(os.path.join('..','..','artifactory'))):
+        DOMINO = False
+
     if DOMINO:
         os.chdir('..')
         os.chdir('..')
