@@ -4,8 +4,6 @@ import os
 import stat
 import sys
 
-reclada_user_name = 'reclada'
-
 def rmdir(top:str):
     if os.path.exists(top) and os.path.isdir(top):
         for root, dirs, files in os.walk(top, topdown=False):
@@ -85,13 +83,6 @@ if __name__ == "__main__":
 
     os.chdir('..')
     rmdir('postgres-json-schema')
-
-    pg_user = parsed.username
-    if pg_user != reclada_user_name:
-        if os.popen(f'psql -t -P pager=off -c "SELECT rolname FROM pg_roles WHERE rolname=\'{reclada_user_name}\'" {DB_URI}').read().strip() != reclada_user_name:
-            os.system(f'psql -c "CREATE ROLE {reclada_user_name} NOINHERIT" {DB_URI}')
-        if os.popen(f'psql -t -P pager=off -c "SELECT CASE WHEN pg_has_role(\'{pg_user}\',\'{reclada_user_name}\',\'member\') THEN 1 ELSE 0 END" {DB_URI}').read().strip() == '0':
-            os.system(f'psql -c "GRANT {reclada_user_name} TO {pg_user}" {DB_URI}')
 
     e_name = os.environ.get('ENVIRONMENT_NAME')
     DOMINO = e_name == 'DOMINO'
