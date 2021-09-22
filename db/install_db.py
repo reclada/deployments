@@ -105,14 +105,24 @@ if __name__ == "__main__":
         os.chdir('deployments')
     else:
         rmdir('artifactory')
+    
+    # check if we can run aws_lambda.invoke
+    if os.popen(f'psql -t -P pager=off -c "SELECT COUNT(*) FROM pg_proc p JOIN pg_namespace n on p.pronamespace=n.oid WHERE n.nspname =\'aws_lambda\' and p.proname = \'invoke\' and not has_function_privilege(p.oid,\'execute\')" {DB_URI}').read().strip() != '0':
+        raise Exception(f'User {parsed.username} should have GRANT to EXECUTE aws_lambda.invoke functions')
+        exit()
+    else:
+        print (f'OK: User {parsed.username} have GRANT to EXECUTE aws_lambda.invoke functions')
+    
 
     l_name = os.environ.get('LAMBDA_NAME')
     if l_name is not None and e_name is not None:
-        cmd = '''SELECT reclada_object.create('{\"class\": \"Context\",\"attributes\": {\"Lambda\": \"#@#lname#@#\",\"Environment\": \"#@#ename#@#\"}}'::jsonb);'''
-        cmd = cmd.replace('#@#lname#@#', l_name)
-        cmd = cmd.replace('#@#ename#@#', e_name)
+        with open('object_create.sql') as f:
+            obj_cr = f.readlines()
         with open('tmp.sql','w') as f:
-            f.write(cmd)
+            for line in obj_cr:
+                line = line.replace('#@#lname#@#', l_name)
+                line = line.replace('#@#ename#@#', e_name)
+                f.write(line)
         cmd = f"psql -f tmp.sql {DB_URI}"
         os.system(cmd)
         os.remove('tmp.sql')
