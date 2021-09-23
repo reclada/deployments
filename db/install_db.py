@@ -119,10 +119,9 @@ if __name__ == "__main__":
         with open('object_create.sql') as f:
             obj_cr = f.readlines()
         with open('tmp.sql','w') as f:
-            for line in obj_cr:
-                line = line.replace('#@#lname#@#', l_name)
-                line = line.replace('#@#ename#@#', e_name)
-                f.write(line)
+            obj_cr = obj_cr.replace('#@#lname#@#', l_name)
+            obj_cr = obj_cr.replace('#@#ename#@#', e_name)
+            f.write(obj_cr)
         cmd = f"psql -f tmp.sql {DB_URI}"
         os.system(cmd)
         os.remove('tmp.sql')
