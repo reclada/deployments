@@ -117,7 +117,7 @@ if __name__ == "__main__":
     l_name = os.environ.get('LAMBDA_NAME')
     if l_name is not None and e_name is not None:
         with open('object_create.sql') as f:
-            obj_cr = f.readlines()
+            obj_cr = f.read()
         with open('tmp.sql','w') as f:
             obj_cr = obj_cr.replace('#@#lname#@#', l_name)
             obj_cr = obj_cr.replace('#@#ename#@#', e_name)
