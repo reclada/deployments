@@ -103,6 +103,7 @@ if __name__ == "__main__":
 
     if DOMINO:
         os.chdir('deployments')
+        os.chdir('db')
     else:
         rmdir('artifactory')
     
