@@ -23,11 +23,10 @@ def create_db(DB_URI, rms):
 
     DB_name = DB_URI.split('/')[-1]
     DB_URI_postgres = DB_URI.replace(DB_name,'')+'postgres'
-    found = '--void--'
     for db_list_name in os.popen(f'psql -lqt {DB_URI_postgres}'):
         if db_list_name.split('|')[0].strip() == DB_name:
-            found = DB_name
-    if found != DB_name:
+            break
+    else:
         print (f'Can\'t found {DB_name}')
         os.system(f'psql -c "CREATE DATABASE {DB_name}" {DB_URI_postgres}')
         print(f'Database {DB_name} created')
@@ -71,51 +70,26 @@ if __name__ == "__main__":
     DB_URI = DB_URI.replace(parsed.password, urllib.parse.quote(parsed.password))
     create_db(DB_URI, rms)
     
-    # installl validate_json_schema
-    rmdir('postgres-json-schema')
-    os.system(f'git clone https://github.com/gavinwahl/postgres-json-schema.git')
-    os.chdir('postgres-json-schema')
-    with open('postgres-json-schema--0.1.1.sql') as s, open('patched.sql','w') as d:
-        d.write(s.read().replace('@extschema@','public'))
-
-    cmd = f"psql -f patched.sql {DB_URI}"
-    os.system(cmd)
-
-    os.chdir('..')
-    rmdir('postgres-json-schema')
-
     e_name = os.environ.get('ENVIRONMENT_NAME')
-    DOMINO = e_name == 'DOMINO'
-    if not (os.path.exists(os.path.join('..','..','artifactory')) and os.path.isdir(os.path.join('..','..','artifactory'))):
-        DOMINO = False
 
-    if DOMINO:
-        os.chdir('..')
-        os.chdir('..')
-    else:
-        rmdir('artifactory')
-        os.system(f'git clone https://github.com/reclada/artifactory.git')
+    rmdir('db')
+    os.system(f'git clone https://github.com/reclada/db.git')
         
-    os.chdir(os.path.join('artifactory','db'))
+    os.chdir(os.path.join('db','update'))
+    #{ for debug
+    #os.system(f'git checkout deployments')
+    #} for debug
+
     os.system(f'psql -f install_db.sql {DB_URI} ')
+    os.rename('update_config_template.json', 'update_config.json')
+    from db.update.update_db import json_schema_install
+    json_schema_install(DB_URI)
     os.chdir('..')
     os.chdir('..')
 
-    if DOMINO:
-        os.chdir('deployments')
-        os.chdir('db')
-    else:
-        rmdir('artifactory')
-    
-    # check if we can run aws_lambda.invoke
-    if os.popen(f'psql -t -P pager=off -c "SELECT COUNT(*) FROM pg_proc p JOIN pg_namespace n on p.pronamespace=n.oid WHERE n.nspname =\'aws_lambda\' and p.proname = \'invoke\' and not has_function_privilege(p.oid,\'execute\')" {DB_URI}').read().strip() != '0':
-        raise Exception(f'User {parsed.username} should have GRANT to EXECUTE aws_lambda.invoke functions')
-        exit()
-    else:
-        print (f'OK: User {parsed.username} have GRANT to EXECUTE aws_lambda.invoke functions')
-    
-
+    rmdir('db')
     l_name = os.environ.get('LAMBDA_NAME')
+
     if l_name is not None and e_name is not None:
         with open('object_create.sql') as f:
             obj_cr = f.read()
@@ -123,9 +97,19 @@ if __name__ == "__main__":
             obj_cr = obj_cr.replace('#@#lname#@#', l_name)
             obj_cr = obj_cr.replace('#@#ename#@#', e_name)
             f.write(obj_cr)
-        cmd = f"psql -f tmp.sql {DB_URI}"
+        cmd = f"psql -P pager=off -f tmp.sql {DB_URI}"
         os.system(cmd)
         os.remove('tmp.sql')
+    else:
+        print('LAMBDA_NAME or ENVIRONMENT_NAME not found')
+
+    # check if we can run aws_lambda.invoke
+    if os.popen(f'psql -t -P pager=off -c "SELECT COUNT(*) FROM pg_proc p JOIN pg_namespace n on p.pronamespace=n.oid WHERE n.nspname =\'aws_lambda\' and p.proname = \'invoke\' and not has_function_privilege(p.oid,\'execute\')" {DB_URI}').read().strip() != '0':
+        raise Exception(f'User {parsed.username} should have GRANT to EXECUTE aws_lambda.invoke functions')
+        exit()
+    else:
+        print (f'OK: User {parsed.username} have GRANT to EXECUTE aws_lambda.invoke functions')
+    
     
     print('instaling from CUSTOM_REPO_PATH/db')
     crp = os.path.join(os.environ.get('CUSTOM_REPO_PATH'),'db')
