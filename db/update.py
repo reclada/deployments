@@ -3,7 +3,7 @@ import urllib.parse
 import os
 import stat
 import sys
-from install_db import rmdir,DB_URI
+from install import rmdir,DB_URI
 
 
 '''
