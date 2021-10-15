@@ -4,6 +4,11 @@ import os
 import stat
 import sys
 
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+DB_URI = os.environ.get('DB_URI')
+parsed = urllib.parse.urlparse(DB_URI)
+DB_URI = DB_URI.replace(parsed.password, urllib.parse.quote(parsed.password))
+
 def rmdir(top:str):
     if os.path.exists(top) and os.path.isdir(top):
         for root, dirs, files in os.walk(top, topdown=False):
@@ -63,22 +68,15 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         if sys.argv[1] == 'rm_schema':
             rms = True
-    
-    
 
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    DB_URI = os.environ.get('DB_URI')
-    parsed = urllib.parse.urlparse(DB_URI)
-    DB_URI = DB_URI.replace(parsed.password, urllib.parse.quote(parsed.password))
     prepare_db(DB_URI, rms)
-    
-
+  
     rmdir('db')
     os.system(f'git clone https://github.com/reclada/db.git')
         
     os.chdir(os.path.join('db','update'))
     #{ for debug
-    #os.system(f'git checkout deployments')
+    os.system(f'git checkout deployments')
     #} for debug
 
     os.system(f'psql -f install_db.sql {DB_URI} ')
