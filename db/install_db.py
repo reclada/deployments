@@ -76,7 +76,7 @@ if __name__ == "__main__":
         
     os.chdir(os.path.join('db','update'))
     #{ for debug
-    os.system(f'git checkout deployments')
+    #os.system(f'git checkout deployments')
     #} for debug
 
     os.system(f'psql -f install_db.sql {DB_URI} ')
