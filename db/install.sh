@@ -4,7 +4,8 @@ pushd "$(dirname ${BASH_SOURCE:0})"
 if test "$1" = "install"
 then
     python3 install_db.py $2
-elif test "$1" = "update"
+elif test "$1" = "update" 
+then
     python3 update_db.py
 else
     echo "unknown command"
